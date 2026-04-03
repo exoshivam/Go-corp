@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Ride Clusters Map</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <style>
+      #map {
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script>
+  const map = L.map("map").setView([12.84, 77.65], 13);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "OSM",
+  }).addTo(map);
+
+  const colors = ["red", "blue", "green", "purple", "orange", "black"];
+
+  async function loadClusters() {
+    const res = await fetch(
+      "http://localhost:5000/api/ride/clusters?office_id=69c2f088b80edd362f18ba49&direction=PICKUP&scheduled_at=2026-03-30T09:02:00Z"
+    );
+
+    const data = await res.json();
+
+    if (!data.rides || !data.batches) {
+      console.error("Invalid response:", data);
+      return;
+    }
+
+    console.log(data);
+
+    const { rides, batches, office } = data;
+
+    const allPoints = [];
+
+    // 🎨 batch color mapping
+    const batchColors = {};
+    let colorIndex = 0;
+
+    // 🛣 DRAW ROUTES
+    batches.forEach((batch) => {
+      const id = batch._id.toString();
+      batchColors[id] = colors[colorIndex++ % colors.length];
+
+      if (batch.route_polyline?.coordinates) {
+        const coords = batch.route_polyline.coordinates.map((c) => [
+          c[1],
+          c[0],
+        ]);
+
+        coords.forEach((c) => allPoints.push(c));
+
+        L.polyline(coords, {
+          color: batchColors[id],
+          weight: 4,
+        }).addTo(map);
+      }
+    });
+
+    // 👤 USER ICON
+    const userIcon = L.icon({
+      iconUrl: "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
+      iconSize: [25, 25],
+    });
+
+    // 🏢 OFFICE ICON
+    const officeIcon = L.icon({
+      iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+      iconSize: [30, 30],
+    });
+
+    // 👤 DRAW RIDES (PICKUP + DROP)
+    rides.forEach((ride) => {
+      const pickup = ride.pickup_location.coordinates;
+      const pickupLatLng = [pickup[1], pickup[0]];
+
+      allPoints.push(pickupLatLng);
+
+      const batchId = ride.batch_id?.toString();
+      const color = batchColors[batchId] || "gray";
+
+      // 👤 Pickup Marker
+      L.marker(pickupLatLng, { icon: userIcon })
+        .addTo(map)
+        .bindPopup(`
+          👤 Pickup<br>
+          Ride ID: ${ride._id}<br>
+          Order: ${ride.pickup_order}
+        `);
+
+      // 🎯 Drop Marker
+      const drop = ride.drop_location.coordinates;
+      const dropLatLng = [drop[1], drop[0]];
+
+      allPoints.push(dropLatLng);
+
+      L.circleMarker(dropLatLng, {
+        radius: 5,
+        color: "gray",
+      })
+        .addTo(map)
+        .bindPopup("🎯 Drop Point");
+    });
+
+    // 🏢 OFFICE MARKER
+    if (office?.office_location?.coordinates) {
+      const coord = office.office_location.coordinates;
+      const officeLatLng = [coord[1], coord[0]];
+
+      allPoints.push(officeLatLng);
+
+      L.marker(officeLatLng, { icon: officeIcon })
+        .addTo(map)
+        .bindPopup("🏢 Office");
+    }
+
+    // 🔍 AUTO ZOOM
+    if (allPoints.length > 0) {
+      map.fitBounds(allPoints);
+    }
+  }
+
+  loadClusters();
+</script>
+  </body>
+</html>
