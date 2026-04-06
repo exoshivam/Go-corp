@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #F29400;
+  --primary-hover: #D98300;
+  --bg-white: #FFFFFF;
+  --bg-light: #F9FAFB;
+  --text-main: #000000;
+  --text-muted: #666666;
+  --border: #E5E7EB;
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply font-['Inter'] bg-[var(--bg-light)] text-[var(--text-main)] antialiased min-h-screen flex justify-center;
+  }
+  
+  #root {
+    @apply w-full max-w-[480px] bg-white min-h-screen relative overflow-x-hidden;
+  }
+
+  h1, h2, h3 {
+    @apply font-bold text-[var(--text-main)];
+  }
+
+  button {
+    @apply cursor-pointer border-none transition-all duration-200;
+    font-family: inherit;
+  }
+
+  input {
+    font-family: inherit;
+  }
+}
+
+@layer components {
+  .container {
+    @apply p-5;
+  }
+}
